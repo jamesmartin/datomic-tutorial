@@ -59,3 +59,73 @@ Appreciated this line from the tutorial:
 
 Hah!
 
+Setting up Leiningen to [read GPG credentials](https://github.com/technomancy/leiningen/blob/master/doc/DEPLOY.md#authentication). Initially installed `gpg` and `gpg-agent` with homebrew. Then read the [Lein GPG guide](https://github.com/technomancy/leiningen/blob/stable/doc/GPG.md) to get help on generating suitable keypairs.
+
+GPG keys generated. Encrypted the `~/.lein/credentials.clj` settings file, which holds the username and password credentials for my.datomic.com.
+
+Added a dependency on Datomic in the [project.clj](./project.clj) file:
+```clojure
+  :dependencies [
+                 [org.clojure/clojure "1.6.0"]
+                 [com.datomic/datomic-pro "0.9.5067"]
+                 ]
+```
+
+Had some problems with the GPG authentication when starting `lein repl`. Apparently one needs to run the `gpg-agent` and specify the `use-agent` configuration option in `~/.gnupg/gpg.conf`.
+
+Weird. This [strange incantation](https://github.com/technomancy/leiningen/issues/1349#issuecomment-74310781) seemed to allow me to decrypt the credentials file:
+
+```bash
+killall ssh-agent gpg-agent
+unset GPG_AGENT_INFO SSH_AGENT_PID SSH_AUTH_SOCK
+eval $(gpg-agent --daemon --enable-ssh-support)
+```
+
+Next problem, dowloading the the datomic dependencies via lein threw this error:
+
+```bash
+Could not transfer artifact com.datomic:datomic-pro:pom:0.9.5067 from/to my.datomic.com (https://my.datomic.com/repo): Not authorized , ReasonPhrase:Unauthorized.
+```
+
+Logged in to my.datomic.com to check my password, which works for logging into the website, but also found a note saying that passcode for downloading the datomic dependencies automatically is different. Updated `~/.lein/credentials.clj` and re-encrypted, like so:
+
+```bash
+gpg --default-recipient-self -e \
+~/.lein/credentials.clj > ~/.lein/credentials.clj.gpg
+```
+
+And running `lein repl` this time seemed to work:
+
+```bash
+Retrieving com/datomic/datomic-pro/0.9.5067/datomic-pro-0.9.5067.pom from my.datomic.com
+```
+
+Back to the tutorial...
+
+## Connecting to the Memory database
+
+This will mostly be a straight translation of the tutorial code, with comments where things aren't obvious.
+
+```clojure
+;; Import the Datomic Peer library (usable as 'Peer' from here on)
+(import datomic.Peer)
+
+;; Create the in memory database, calling the static class method Peer#createDatabase
+(def uri "datomic:mem://hello")
+(Peer/createDatabase uri)
+
+;; Create a "connection" to the database
+(def conn (Peer/connect uri))
+
+
+;; Create a datom to describe the first bits of data we're entering into the DB:
+(def datom ["db/add" (Peer/tempid "db.part/user") "db/doc" "hello world"])
+
+;; Pass the datom to the transactor via the connection (note the 'vector of vectors' for the datom):
+(def resp (.transact conn [datom]))
+
+;; currently stuck here:
+datomic-tutorial.core=> (Peer/query "[:find ?entity :where [?entity :db/doc \"hello world\"]]" db)
+
+ClassCastException datomic.db.Db cannot be cast to [Ljava.lang.Object;
+```

@@ -102,6 +102,8 @@ Retrieving com/datomic/datomic-pro/0.9.5067/datomic-pro-0.9.5067.pom from my.dat
 
 Back to the tutorial...
 
+___Note:___ It seems to be necessary to run the `gpg-agent` in a terminal session and then run `lein repl` in the same shell.
+
 ## Connecting to the Memory database
 
 This will mostly be a straight translation of the tutorial code, with comments where things aren't obvious.
@@ -128,4 +130,41 @@ This will mostly be a straight translation of the tutorial code, with comments w
 datomic-tutorial.core=> (Peer/query "[:find ?entity :where [?entity :db/doc \"hello world\"]]" db)
 
 ClassCastException datomic.db.Db cannot be cast to [Ljava.lang.Object;
+
 ```
+
+Trying a different tack: Checking out the equivalent functionality of the [Datomic Clojure API](http://docs.datomic.com/clojure/index.html). Now how to use it in the repl...
+
+```clojure
+;; use the Datomic native Clojure library
+datomic-tutorial.core=> (require 'datomic.api)
+nil
+;; a basic in memory datomic database, called 'hello'
+datomic-tutorial.core=> (def uri "datomic:mem://hello")
+#'datomic-tutorial.core/uri
+;; ... is created
+datomic-tutorial.core=> (datomic.api/create-database uri)
+true
+;; connect to the database
+datomic-tutorial.core=> (def conn (datomic.api/connect uri))
+#'datomic-tutorial.core/conn
+;; a datom "adds a fact, about a new entity with this temporary id, and asserts that the attribute db/doc has the value hello world"
+datomic-tutorial.core=> (def datom ["db/add" (datomic.api/tempid "db.part/user") "db/doc" "hello world"])
+#'datomic-tutorial.core/datom
+;; commit the fact via the Datomic transactor
+datomic-tutorial.core=> (def resp (datomic.api/transact conn [datom]))
+#'datomic-tutorial.core/resp
+datomic-tutorial.core=> resp
+#<promise$settable_future$reify__5376@b443e92: {:db-before datomic.db.Db@b515b169, :db-after datomic.db.Db@f20dfecc, :tx-data [#datom[13194139534312 50 #inst "2015-06-02T12:23:58.409-00:00" 13194139534312 true] #datom[17592186045417 62 "hello world" 13194139534312 true]], :tempids {-9223350046623220288 17592186045417}}>
+;; this query "finds entities where we specify entities as an entity has the attribute db/doc with value hello world"
+datomic-tutorial.core=> (def query "[:find ?entity :where [?entity :db/doc \"hello world\"]]")
+#'datomic-tutorial.core/query
+;; run the query against the 'db' snapshot as input, which we get from the connection
+datomic-tutorial.core=> (def result (datomic.api/q query (datomic.api/db conn)))
+#'datomic-tutorial.core/result
+;; one result; the one we added
+datomic-tutorial.core=> result
+#{[17592186045417]}
+```
+
+Onwards and upwards to the tutorial proper...

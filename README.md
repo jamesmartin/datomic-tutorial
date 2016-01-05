@@ -83,7 +83,7 @@ eval $(gpg-agent --daemon --enable-ssh-support)
 
 Next problem, dowloading the the datomic dependencies via lein threw this error:
 
-___Note:___ If you installed the peer libs via `maven-install` first `lein deps` still could fail with this error message. Removing the libs `maven-install` (`rm -rf ~/.m2/repository/com/datomic/datomic-pro/$VERSION`)installed fixes this problem.
+___Note:___ If you installed the peer libs via `maven-install` first, `lein deps` still could fail with this error message. Removing the libs `maven-install` installed fixes this problem (`rm -rf ~/.m2/repository/com/datomic/datomic-pro/$VERSION`).
 
 ```bash
 Could not transfer artifact com.datomic:datomic-pro:pom:0.9.5067 from/to my.datomic.com (https://my.datomic.com/repo): Not authorized , ReasonPhrase:Unauthorized.

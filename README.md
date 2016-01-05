@@ -83,11 +83,14 @@ eval $(gpg-agent --daemon --enable-ssh-support)
 
 Next problem, dowloading the the datomic dependencies via lein threw this error:
 
+___Note:___ If you installed the peer libs via `maven-install` first `lein deps` still could fail with this error message. Removing the libs `maven-install` (`rm -rf ~/.m2/repository/com/datomic/datomic-pro/$VERSION`)installed fixes this problem.
+
 ```bash
 Could not transfer artifact com.datomic:datomic-pro:pom:0.9.5067 from/to my.datomic.com (https://my.datomic.com/repo): Not authorized , ReasonPhrase:Unauthorized.
 ```
 
 Logged in to my.datomic.com to check my password, which works for logging into the website, but also found a note saying that passcode for downloading the datomic dependencies automatically is different. Updated `~/.lein/credentials.clj` and re-encrypted, like so:
+
 
 ```bash
 gpg --default-recipient-self -e \
